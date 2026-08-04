@@ -1131,109 +1131,143 @@ def update_attack_map(ip, country, city, score=0, title=""):
 
 def _write_map_html():
     """
-    Generates a self-contained HTML page with a Leaflet.js world map.
-    The page auto-refreshes its data every 15 seconds.
-    Serve it with: python3 -m http.server 8888 --directory /home/cowrie/attack_map/
+    Generates a self-contained HTML page with a Leaflet.js world map plus
+    marker clustering (thousands of attacks stay readable). The page
+    refreshes its data every 15 seconds without reloading.
+    Serve with: python3 -m http.server 8888 --directory /home/cowrie/attack_map/
     """
     html = """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SOC Live Attack Map</title>
-<meta http-equiv="refresh" content="15">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#0a0a0f; color:#e0e0e0; font-family:'Courier New',monospace; }
-  #header {
-    background:#0d1117; border-bottom:1px solid #ff4444;
-    padding:10px 20px; display:flex; align-items:center; gap:15px;
-  }
-  #header h1 { color:#ff4444; font-size:18px; letter-spacing:2px; }
-  #header .blink { animation:blink 1s step-end infinite; color:#ff4444; }
-  @keyframes blink { 50%{opacity:0} }
-  #stats { display:flex; gap:20px; margin-left:auto; font-size:12px; }
-  #stats span { color:#888; }
-  #stats b { color:#ff4444; }
-  #map { height:calc(100vh - 48px); background:#0a0f1a; }
-  .leaflet-container { background:#0a0f1a !important; }
-  .attack-popup {
-    background:#0d1117; border:1px solid #ff4444; color:#e0e0e0;
-    font-family:'Courier New',monospace; font-size:12px; padding:8px;
-    border-radius:4px;
-  }
-  .attack-popup b { color:#ff4444; }
+ :root{--bg:#080b12;--panel:rgba(13,17,23,.72);--line:#20304a;--accent:#ff3b52;--txt:#e6edf3;--dim:#8b98a8;}
+ *{margin:0;padding:0;box-sizing:border-box;}
+ html,body{height:100%;}
+ body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;overflow:hidden;}
+ #map{position:absolute;inset:0;background:#070a10;}
+ .leaflet-container{background:#070a10 !important;font-family:inherit;}
+ #map:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:400;
+   box-shadow:inset 0 0 220px 60px rgba(0,0,0,.65);}
+
+ #bar{position:absolute;top:0;left:0;right:0;z-index:1000;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+   padding:12px 18px;background:linear-gradient(180deg,rgba(8,11,18,.94),rgba(8,11,18,0));pointer-events:none;}
+ #brand{display:flex;align-items:center;gap:11px;pointer-events:auto;}
+ #brand .dot{width:11px;height:11px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:pulse 1.6s infinite;}
+ #brand h1{font-size:15px;font-weight:700;letter-spacing:3px;color:#fff;line-height:1;}
+ #brand small{font-size:10px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;}
+ @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+
+ #stats{margin-left:auto;display:flex;gap:9px;pointer-events:auto;}
+ .chip{background:var(--panel);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
+   border:1px solid var(--line);border-radius:11px;padding:7px 15px;min-width:72px;text-align:center;}
+ .chip .n{font-size:18px;font-weight:700;color:#fff;line-height:1;}
+ .chip .l{font-size:8.5px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;margin-top:5px;}
+ .chip.hot .n{color:var(--accent);}
+
+ #legend{position:absolute;bottom:16px;left:16px;z-index:1000;background:var(--panel);
+   backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);border:1px solid var(--line);
+   border-radius:11px;padding:10px 13px;font-size:11px;}
+ #legend .t{font-size:9px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;}
+ #legend .row{display:flex;align-items:center;gap:8px;margin:4px 0;color:#c7d1dc;}
+ #legend i{width:11px;height:11px;border-radius:50%;display:inline-block;flex:0 0 auto;}
+
+ .dot-marker{border-radius:50%;border:1.5px solid rgba(255,255,255,.55);}
+ .dot-pulse{animation:mp 2s infinite;}
+ @keyframes mp{0%{box-shadow:0 0 0 0 rgba(255,59,82,.55)}70%{box-shadow:0 0 0 13px rgba(255,59,82,0)}100%{box-shadow:0 0 0 0 rgba(255,59,82,0)}}
+
+ .cl{border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;
+   border:2px solid rgba(255,255,255,.28);text-shadow:0 1px 2px rgba(0,0,0,.5);}
+ .cl-s{background:rgba(70,130,255,.78);width:34px;height:34px;font-size:12px;}
+ .cl-m{background:rgba(255,170,40,.82);width:42px;height:42px;font-size:13px;}
+ .cl-l{background:rgba(255,59,82,.86);width:52px;height:52px;font-size:14px;box-shadow:0 0 22px rgba(255,59,82,.65);}
+
+ .leaflet-popup-content-wrapper{background:#0d1117;color:var(--txt);border:1px solid var(--line);border-radius:11px;box-shadow:0 8px 30px rgba(0,0,0,.5);}
+ .leaflet-popup-content{margin:11px 13px;}
+ .leaflet-popup-tip{background:#0d1117;border:1px solid var(--line);}
+ .pop b{color:var(--accent);font-size:13px;letter-spacing:.5px;}
+ .pop .r{color:var(--dim);font-size:11px;margin-top:3px;}
+ .pop .sc{display:inline-block;margin-top:7px;padding:2px 9px;border-radius:6px;background:rgba(255,59,82,.15);color:var(--accent);font-size:11px;font-weight:600;}
+ .leaflet-control-zoom a{background:var(--panel)!important;color:#fff!important;border-color:var(--line)!important;backdrop-filter:blur(9px);}
 </style>
 </head>
 <body>
-<div id="header">
-  <span class="blink">⬤</span>
-  <h1>SOC LIVE ATTACK MAP</h1>
+<div id="bar">
+  <div id="brand"><span class="dot"></span><div><h1>SOC ATTACK MAP</h1><small>live honeypot telemetry</small></div></div>
   <div id="stats">
-    <span>Total Events: <b id="total">0</b></span>
-    <span>Last Update: <b id="lastupdate">--</b></span>
+    <div class="chip hot"><div class="n" id="s-total">0</div><div class="l">Attacks</div></div>
+    <div class="chip"><div class="n" id="s-ctry">0</div><div class="l">Countries</div></div>
+    <div class="chip"><div class="n" id="s-upd">--</div><div class="l">Updated</div></div>
   </div>
+</div>
+<div id="legend">
+  <div class="t">Threat level</div>
+  <div class="row"><i style="background:#4682ff"></i>Probe</div>
+  <div class="row"><i style="background:#ffaa28"></i>Active attacker</div>
+  <div class="row"><i style="background:#ff3b52"></i>High threat</div>
 </div>
 <div id="map"></div>
 <script>
-const map = L.map('map', {
-  center:[20,0], zoom:2, zoomControl:true,
-  attributionControl:false
+const map = L.map('map',{center:[25,10],zoom:2,minZoom:2,maxZoom:12,zoomControl:false,worldCopyJump:true,attributionControl:false});
+L.control.zoom({position:'bottomright'}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
+
+function tier(score){if(score>=30)return['#ff3b52',18];if(score>=10)return['#ff7a3b',15];if(score>=3)return['#ffaa28',12];return['#4682ff',9];}
+function dotIcon(score){
+  const t=tier(score),c=t[0],sz=t[1];
+  const pulse=score>=30?' dot-pulse':'';
+  return L.divIcon({className:'',iconSize:[sz,sz],
+    html:'<div class="dot-marker'+pulse+'" style="width:'+sz+'px;height:'+sz+'px;background:'+c+';box-shadow:0 0 '+sz+'px '+c+';"></div>'});
+}
+
+const cluster = L.markerClusterGroup({
+  maxClusterRadius:45, spiderfyOnMaxZoom:true, showCoverageOnHover:false, chunkedLoading:true,
+  iconCreateFunction:function(c){
+    const n=c.getChildCount(); let cls='cl-s'; if(n>=100)cls='cl-l'; else if(n>=15)cls='cl-m';
+    return L.divIcon({html:'<div class="cl '+cls+'">'+n+'</div>',className:'',iconSize:[40,40]});
+  }
 });
+map.addLayer(cluster);
 
-// Dark tile layer (CartoDB Dark Matter)
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-  maxZoom:19
-}).addTo(map);
-
-let markers = [];
-
-function redIcon(score) {
-  const size = Math.min(6 + Math.floor(score/5), 18);
-  return L.divIcon({
-    className:'',
-    html:`<div style="width:${size}px;height:${size}px;border-radius:50%;
-          background:rgba(255,50,50,0.85);border:1px solid #ff0000;
-          box-shadow:0 0 ${size}px #ff0000;"></div>`,
-    iconSize:[size,size],
-  });
-}
-
-async function loadData() {
-  try {
-    const r = await fetch('attacks.json?t=' + Date.now());
-    const data = await r.json();
-
-    markers.forEach(m => map.removeLayer(m));
-    markers = [];
-
-    data.forEach(a => {
-      if (!a.lat && !a.lon) return;
-      const m = L.marker([a.lat, a.lon], {icon: redIcon(a.score || 0)});
-      m.bindPopup(`<div class="attack-popup">
-        <b>${a.ip}</b><br>
-        ${a.city}, ${a.country}<br>
-        ${a.title || 'Unknown'} (Score: ${a.score || 0})<br>
-        <small>${a.ts}</small>
-      </div>`, {className:'attack-popup'});
-      m.addTo(map);
-      markers.push(m);
+async function loadData(){
+  try{
+    const r=await fetch('attacks.json?t='+Date.now());
+    const data=await r.json();
+    cluster.clearLayers();
+    const ctry=new Set(); const batch=[];
+    data.forEach(a=>{
+      if(!a.lat && !a.lon) return;
+      if(a.country && a.country!=='Historical' && a.country!=='Unknown') ctry.add(a.country);
+      const m=L.marker([a.lat,a.lon],{icon:dotIcon(a.score||0)});
+      m.bindPopup('<div class="pop"><b>'+(a.ip||'?')+'</b>'+
+        '<div class="r">'+(a.city||'?')+', '+(a.country||'?')+'</div>'+
+        '<div class="r">'+(a.title||'Unknown')+'</div>'+
+        '<span class="sc">Score '+(a.score||0)+'</span>'+
+        '<div class="r">'+(a.ts||'')+'</div></div>');
+      batch.push(m);
     });
-
-    document.getElementById('total').textContent = data.length;
-    document.getElementById('lastupdate').textContent = new Date().toLocaleTimeString();
-  } catch(e) { console.error(e); }
+    cluster.addLayers(batch);
+    document.getElementById('s-total').textContent=data.length.toLocaleString();
+    document.getElementById('s-ctry').textContent=ctry.size;
+    document.getElementById('s-upd').textContent=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  }catch(e){console.error(e);}
 }
-
 loadData();
-setInterval(loadData, 15000);
+setInterval(loadData,15000);
 </script>
 </body>
 </html>
 """
     with open(MAP_DASHBOARD_PATH, "w") as f:
         f.write(html)
+
 
 # ====================== IOC EXTRACTION ======================
 
