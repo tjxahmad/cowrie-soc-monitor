@@ -1,9 +1,9 @@
 {
   "name": "usman",
   "discord_alert": "active",
-  "attack_map": "unknown",
-  "today_attacks": -1,
-  "last_attacker": "",
-  "updated": 1785865983,
-  "updated_iso": "2026-08-04 17:53:03 UTC"
+  "attack_map": "active",
+  "today_attacks": 2074,
+  "last_attacker": "91.92.40.202 \u2014 user:deployer pass:'deployer123'",
+  "updated": 1785866020,
+  "updated_iso": "2026-08-04 17:53:40 UTC"
 }
