@@ -65,6 +65,7 @@ from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 
 import requests
+from github_sync import register_and_report as _gh_report
 
 # ====================== CONFIG ======================
 
@@ -155,7 +156,8 @@ _db = {
     "campaign_alerted": {}, # fingerprint -> last_alerted_timestamp
 }
 
-live_sessions = {}          # session_id -> {...}  (in-memory only, TTL-expired)
+live_sessions  = {}          # session_id -> {...}  (in-memory only, TTL-expired)
+_session_hassh = {}          # session_id -> hassh  (for cross-VPS github sync)
 _db_lock = threading.Lock()
 _discord_lock = threading.Lock()
 
@@ -1494,6 +1496,7 @@ def _process_event(event):
                 guess, source = lookup_hassh(hassh_value, raw_banner=banner)
                 country, city, isp, flag, asn, org = get_ip_intel(ip)
 
+                _session_hassh[session] = hassh_value
                 check_campaign("hassh", hassh_value, ip)
 
                 if guess:
@@ -1565,34 +1568,46 @@ def _process_event(event):
                 "footer":{"text":"Cyber Threat Intel Alert System"},
             })
 
-            # AbuseIPDB — skip if blank password or internal IP
-            if password == "":
+            # AbuseIPDB — GitHub central DB se (cross-VPS, 24h cooldown, campaign)
+            _gh_result = _gh_report(
+                ip, _session_hassh.get(session), password,
+                report_to_abuseipdb, session
+            )
+            if _gh_result.get("skipped_blank"):
                 send_to_discord({
                     "title":"⏭️ AbuseIPDB Report Skipped — Blank Password","color":9807270,
-                    "description":f"IP `{ip}` ne khali password use kiya, AbuseIPDB report nahi bheji.",
+                    "description":f"IP `{ip}` ne khali password use kiya, report skip.",
                     "fields":[{"name":"🆔 Session","value":str(session),"inline":True}],
                     "footer":{"text":"AbuseIPDB Auto-Report System"},
                 })
-            elif ip != "Unknown IP" and not ip.startswith(INTERNAL_PREFIXES) and should_report(ip):
-                comment = (f"Honeypot brute-force via Cowrie SSH/Telnet honeypot.\n"
-                           f"Username: {username} | Password: {password}\nSession: {session}")
-                report_result = report_to_abuseipdb(ip, "18,22", comment)
-                if report_result:
-                    score_val = report_result.get("data",{}).get("abuseConfidenceScore","N/A")
+            elif _gh_result.get("error"):
+                print(f"[github_sync] {_gh_result['error']} — cross-VPS sync skipped for {ip}")
+            else:
+                reported_ips = _gh_result.get("reported", [])
+                is_campaign  = _gh_result.get("campaign", False)
+                camp_ips     = _gh_result.get("campaign_ips", [])
+
+                for r_ip in reported_ips:
                     send_to_discord({
-                        "title":"✅ IP Reported to AbuseIPDB","color":3066993,
+                        "title":"✅ IP Reported to AbuseIPDB (Central DB)","color":3066993,
                         "fields":[
-                            {"name":"🎯 Reported IP","value":str(ip),"inline":True},
-                            {"name":"📊 Abuse Score","value":f"{score_val}%","inline":True},
-                            {"name":"🏷️ Categories","value":"Brute-Force (18), SSH (22)","inline":True},
-                            {"name":"📝 Comment Sent","value":comment,"inline":False},
+                            {"name":"🎯 Reported IP",   "value":str(r_ip),      "inline":True},
+                            {"name":"🌐 Via VPS",       "value":str(ip) if r_ip != ip else "Direct","inline":True},
+                            {"name":"🏷️ Categories",    "value":"Hacking(14) + Brute-Force(18) + SSH(22)" if is_campaign else "Brute-Force(18) + SSH(22)","inline":False},
                         ],
-                        "footer":{"text":"AbuseIPDB Auto-Report System"},
+                        "footer":{"text":"AbuseIPDB Auto-Report — GitHub Central DB"},
                     })
-                else:
+
+                if is_campaign and camp_ips:
                     send_to_discord({
-                        "title":"⚠️ AbuseIPDB Report Failed","color":16776960,
-                        "description":f"IP `{ip}` report karne ki koshish hui lekin error aaya. Logs check karo.",
+                        "title":"🕸️ CROSS-VPS BOTNET CAMPAIGN — GitHub Central DB","color":10038562,
+                        "fields":[
+                            {"name":"🔑 Shared HASSH",    "value":str(_session_hassh.get(session,"N/A")), "inline":False},
+                            {"name":"📊 Linked IPs Total","value":str(len(camp_ips)),                     "inline":True},
+                            {"name":"📤 Reported Now",    "value":str(len(reported_ips)),                 "inline":True},
+                            {"name":"🌐 All Linked IPs",  "value":"```\n" + "\n".join(camp_ips[:20]) + "\n```","inline":False},
+                        ],
+                        "footer":{"text":"Cross-VPS Campaign Detector — github central_db.json"},
                     })
 
             # Draft abuse complaint to hosting provider
