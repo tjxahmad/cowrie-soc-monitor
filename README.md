@@ -197,12 +197,23 @@ nano /home/cowrie/discord_alert.py
 printf '%s' 'ghp_your_token_here' | sudo tee /home/cowrie/.github_token >/dev/null
 sudo chmod 600 /home/cowrie/.github_token
 
-# 4. Install + start the service
+# 4. Install + start the service (this alone joins central_db.json)
 sudo cp cowrie-soc-monitor/discord-alert.service.example /etc/systemd/system/discord-alert.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now discord-alert
+
+# 5. (For the Watchtower / Cowork dashboard) push a heartbeat every 10 min.
+#    Replace <name> with a short label for this server, e.g. azure / vps4.
+sudo cp cowrie-soc-monitor/soc_heartbeat.py /home/cowrie/
+( sudo crontab -l 2>/dev/null; echo '*/10 * * * * /usr/bin/python3 /home/cowrie/soc_heartbeat.py <name>' ) | sudo crontab -
+sudo python3 /home/cowrie/soc_heartbeat.py <name>   # push one now so it shows up immediately
 ```
-That's it — the new VPS is now part of the network. ✅
+That's it — the new VPS is now part of the network **and** appears in the Watchtower / Cowork dashboard. ✅
+
+**What each step sends to GitHub:**
+- Steps 1–4 (the monitor) → writes attacker IPs + HASSH fingerprints into shared **`central_db.json`**.
+- Step 5 (the heartbeat) → writes this server's live **`status/<name>.json`** (service health + today's attacks).
+- Raw Cowrie logs stay **on the VPS** — only this derived intel goes to GitHub. The Watchtower / Cowork plugin reads both files back through the GitHub API, so a new VPS shows up automatically with **no extra config anywhere else**.
 
 ### Automated way (from your laptop) — `deploy_all.py`
 
