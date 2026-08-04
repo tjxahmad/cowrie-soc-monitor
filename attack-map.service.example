@@ -1,0 +1,13 @@
+[Unit]
+Description=Cowrie Attack Map Web Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 -m http.server 8888 --directory /home/cowrie/attack_map/
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
