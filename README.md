@@ -261,6 +261,16 @@ sudo cp cowrie-soc-monitor/soc_daily_summary.py /home/cowrie/
 ( sudo crontab -l 2>/dev/null; echo '30 8 * * * /usr/bin/python3 /home/cowrie/soc_daily_summary.py' ) | sudo crontab -
 ```
 
+**3. GitHub heartbeats → status from anywhere (incl. Cowork)** — [`soc_heartbeat.py`](soc_heartbeat.py) runs on each VPS via cron and pushes a small `status/<name>.json` (service health + today's attacks + last attacker) to this repo every 10 minutes. Each VPS writes its **own** file, so there are no write conflicts. Anything that can read GitHub — including a restricted sandbox like **Claude Cowork** — can then show live per-VPS status **without SSH or any credentials**.
+```bash
+# on each VPS (name = azure / lightsail / usman / ...):
+sudo cp cowrie-soc-monitor/soc_heartbeat.py /home/cowrie/
+( sudo crontab -l 2>/dev/null; echo '*/10 * * * * /usr/bin/python3 /home/cowrie/soc_heartbeat.py <name>' ) | sudo crontab -
+```
+> Adding a new VPS to the dashboard = deploy `soc_heartbeat.py` + one cron line with its name. Nothing else.
+
+A companion **Cowork plugin** (`honeypot-watchtower`) reads these heartbeats + `central_db.json` purely through the GitHub API, so you can ask "honeypot status" inside Cowork. (If the Cowork sandbox blocks `api.github.com`, use `soc_watchtower.py` from a local terminal instead.)
+
 ---
 
 ## 🧰 Operator / setup scripts (in this repo)
@@ -275,6 +285,7 @@ sudo cp cowrie-soc-monitor/soc_daily_summary.py /home/cowrie/
 | [`deploy_all.example.py`](deploy_all.example.py) | Template to deploy code + token to all servers | laptop (copy → `deploy_all.py`) |
 | [`soc_watchtower.example.py`](soc_watchtower.example.py) | One-command cross-VPS briefing (on-demand) | laptop (copy → `soc_watchtower.py`) |
 | [`soc_daily_summary.py`](soc_daily_summary.py) | Daily cross-VPS digest → Discord (via cron) | one VPS |
+| [`soc_heartbeat.py`](soc_heartbeat.py) | Push per-VPS `status/<name>.json` to GitHub (cron) | each VPS |
 | [`discord-alert.service.example`](discord-alert.service.example) | systemd unit for the monitor | each VPS |
 | [`attack-map.service.example`](attack-map.service.example) | systemd unit for the map web server | each VPS |
 
