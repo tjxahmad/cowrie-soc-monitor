@@ -1133,7 +1133,7 @@ def _write_map_html():
     """
     Generates a self-contained HTML page with a Leaflet.js world map plus
     marker clustering (thousands of attacks stay readable). The page
-    refreshes its data every 15 seconds without reloading.
+    refreshes its data every 60 seconds without reloading.
     Serve with: python3 -m http.server 8888 --directory /home/cowrie/attack_map/
     """
     html = """<!DOCTYPE html>
@@ -1260,7 +1260,7 @@ async function loadData(){
   }catch(e){console.error(e);}
 }
 loadData();
-setInterval(loadData,15000);
+setInterval(loadData,60000);
 </script>
 </body>
 </html>
