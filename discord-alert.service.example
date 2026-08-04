@@ -1,0 +1,18 @@
+[Unit]
+Description=SOC Honeypot Discord Alert Monitor
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/cowrie
+ExecStart=/usr/bin/python3 /home/cowrie/discord_alert.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+# Cross-VPS GitHub sync token (alternative to /home/cowrie/.github_token file):
+# Environment=GITHUB_TOKEN=ghp_your_token_here
+
+[Install]
+WantedBy=multi-user.target
