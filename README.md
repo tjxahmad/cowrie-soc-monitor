@@ -229,6 +229,40 @@ To add a future VPS: just append another block to `VPS_LIST` in your private `de
 
 ---
 
+## 👁️ SOC Watchtower — one-command briefing + daily digest
+
+A lightweight monitoring layer on top of the honeypots. Two parts:
+
+**1. On-demand briefing** — [`soc_watchtower.py`](soc_watchtower.example.py) (laptop). Run it any time to get the whole network's status in one shot:
+```bash
+python soc_watchtower.py            # global intel + live SSH status of every VPS
+python soc_watchtower.py --global   # only GitHub central_db (fast, no SSH)
+python soc_watchtower.py --discord  # also post the briefing to Discord
+```
+It reads the **public** `central_db.json` (no token needed) for cross-VPS intel — total tracked IPs, active campaigns, biggest botnets — then SSHes into each VPS for live service health and today's attack count.
+
+Example output:
+```
+🌐 GLOBAL (all honeypots, via GitHub central_db)
+   Tracked IPs:        2,210
+   Reported (last 24h):926
+   🕸️  Biggest botnets:  eb0e0554… → 784 IPs   acaa53e0… → 534 IPs
+🖥️  PER-VPS (live)
+   ✅ Azure      svc:active  today:194 attacks  last:80.94.92.55
+   ✅ Usman      svc:active  today:67 attacks   last:80.94.92.234
+```
+
+> Copy [`soc_watchtower.example.py`](soc_watchtower.example.py) → private `soc_watchtower.py`, fill in your VPS list (same shape as `deploy_all.py`). Adding a VPS = one more line in `VPS_LIST`.
+
+**2. Proactive daily digest** — [`soc_daily_summary.py`](soc_daily_summary.py) runs on one VPS via cron and posts a cross-VPS summary to Discord automatically. No secrets in it: the webhook is read at runtime from `discord_alert.py`, and `central_db.json` is public.
+```bash
+# on the VPS:
+sudo cp cowrie-soc-monitor/soc_daily_summary.py /home/cowrie/
+( sudo crontab -l 2>/dev/null; echo '30 8 * * * /usr/bin/python3 /home/cowrie/soc_daily_summary.py' ) | sudo crontab -
+```
+
+---
+
 ## 🧰 Operator / setup scripts (in this repo)
 
 | File | Purpose | Where to run |
@@ -239,6 +273,8 @@ To add a future VPS: just append another block to `VPS_LIST` in your private `de
 | [`merge_db.py`](merge_db.py) | Merge multiple per-VPS `soc_monitor_db.json` dumps into one | laptop |
 | [`cleanup_test_ip.py`](cleanup_test_ip.py) | Remove test/junk IPs from `central_db.json` | laptop |
 | [`deploy_all.example.py`](deploy_all.example.py) | Template to deploy code + token to all servers | laptop (copy → `deploy_all.py`) |
+| [`soc_watchtower.example.py`](soc_watchtower.example.py) | One-command cross-VPS briefing (on-demand) | laptop (copy → `soc_watchtower.py`) |
+| [`soc_daily_summary.py`](soc_daily_summary.py) | Daily cross-VPS digest → Discord (via cron) | one VPS |
 | [`discord-alert.service.example`](discord-alert.service.example) | systemd unit for the monitor | each VPS |
 | [`attack-map.service.example`](attack-map.service.example) | systemd unit for the map web server | each VPS |
 
