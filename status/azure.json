@@ -2,8 +2,8 @@
   "name": "azure",
   "discord_alert": "active",
   "attack_map": "active",
-  "today_attacks": 0,
-  "last_attacker": "",
-  "updated": 1786150801,
-  "updated_iso": "2026-08-08 01:00:01 UTC"
+  "today_attacks": 46,
+  "last_attacker": "195.178.110.218 \u2014 user:mongodb pass:'mongodb'",
+  "updated": 1786152001,
+  "updated_iso": "2026-08-08 01:20:01 UTC"
 }
