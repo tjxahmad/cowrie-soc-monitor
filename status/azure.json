@@ -2,8 +2,8 @@
   "name": "azure",
   "discord_alert": "active",
   "attack_map": "active",
-  "today_attacks": 711,
-  "last_attacker": "195.178.110.227 \u2014 user:root pass:'P4ssw0rd'",
-  "updated": 1786170001,
-  "updated_iso": "2026-08-08 06:20:01 UTC"
+  "today_attacks": 788,
+  "last_attacker": "195.178.110.227 \u2014 user:root pass:'p4ssword'",
+  "updated": 1786170602,
+  "updated_iso": "2026-08-08 06:30:02 UTC"
 }
