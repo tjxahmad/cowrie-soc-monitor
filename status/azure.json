@@ -2,8 +2,8 @@
   "name": "azure",
   "discord_alert": "active",
   "attack_map": "active",
-  "today_attacks": 204,
-  "last_attacker": "45.156.87.204 \u2014 user:ansible pass:'123456'",
-  "updated": 1786591201,
-  "updated_iso": "2026-08-13 03:20:01 UTC"
+  "today_attacks": 292,
+  "last_attacker": "45.156.87.204 \u2014 user:elasticsearch pass:'elasticsearch'",
+  "updated": 1786592401,
+  "updated_iso": "2026-08-13 03:40:01 UTC"
 }
