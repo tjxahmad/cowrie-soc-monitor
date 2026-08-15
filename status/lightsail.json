@@ -2,8 +2,8 @@
   "name": "lightsail",
   "discord_alert": "active",
   "attack_map": "active",
-  "today_attacks": 4,
-  "last_attacker": "146.190.49.157 \u2014 user:Prank pass:'hahaha'",
-  "updated": 1786751402,
-  "updated_iso": "2026-08-14 23:50:02 UTC"
+  "today_attacks": 0,
+  "last_attacker": "",
+  "updated": 1786752001,
+  "updated_iso": "2026-08-15 00:00:01 UTC"
 }
