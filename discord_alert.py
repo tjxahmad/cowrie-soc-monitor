@@ -1154,6 +1154,7 @@ def _write_map_html():
  body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;overflow:hidden;}
  #map{position:absolute;inset:0;background:#070a10;}
  .leaflet-container{background:#070a10 !important;font-family:inherit;}
+ .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);}
  #map:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:400;
    box-shadow:inset 0 0 220px 60px rgba(0,0,0,.65);}
 
@@ -1217,7 +1218,7 @@ def _write_map_html():
 <script>
 const map = L.map('map',{center:[25,10],zoom:2,minZoom:2,maxZoom:12,zoomControl:false,worldCopyJump:true,attributionControl:false});
 L.control.zoom({position:'bottomright'}).addTo(map);
-L.tileLayer('https://server.arcgis.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,attribution:'Esri'}).addTo(map);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'OpenStreetMap'}).addTo(map);
 
 function tier(score){if(score>=30)return['#ff3b52',18];if(score>=10)return['#ff7a3b',15];if(score>=3)return['#ffaa28',12];return['#4682ff',9];}
 function dotIcon(score){
