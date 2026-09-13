@@ -203,7 +203,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now discord-alert
 
 # 5. (For the Watchtower / Cowork dashboard) push a heartbeat every 10 min.
-#    Replace <name> with a short label for this server, e.g. azure / vps4.
+#    Replace <name> with a short label for this server, e.g. lightsail / kand.
 sudo cp cowrie-soc-monitor/soc_heartbeat.py /home/cowrie/
 ( sudo crontab -l 2>/dev/null; echo '*/10 * * * * /usr/bin/python3 /home/cowrie/soc_heartbeat.py <name>' ) | sudo crontab -
 sudo python3 /home/cowrie/soc_heartbeat.py <name>   # push one now so it shows up immediately
@@ -259,8 +259,8 @@ Example output:
    Reported (last 24h):926
    🕸️  Biggest botnets:  eb0e0554… → 784 IPs   acaa53e0… → 534 IPs
 🖥️  PER-VPS (live)
-   ✅ Azure      svc:active  today:194 attacks  last:80.94.92.55
-   ✅ Usman      svc:active  today:67 attacks   last:80.94.92.234
+   ✅ Lightsail  svc:active  today:194 attacks  last:80.94.92.55
+   ✅ Kand       svc:active  today:67 attacks   last:80.94.92.234
 ```
 
 > Copy [`soc_watchtower.example.py`](soc_watchtower.example.py) → private `soc_watchtower.py`, fill in your VPS list (same shape as `deploy_all.py`). Adding a VPS = one more line in `VPS_LIST`.
@@ -274,7 +274,7 @@ sudo cp cowrie-soc-monitor/soc_daily_summary.py /home/cowrie/
 
 **3. GitHub heartbeats → status from anywhere (incl. Cowork)** — [`soc_heartbeat.py`](soc_heartbeat.py) runs on each VPS via cron and pushes a small `status/<name>.json` (service health + today's attacks + last attacker) to this repo every 10 minutes. Each VPS writes its **own** file, so there are no write conflicts. Anything that can read GitHub — including a restricted sandbox like **Claude Cowork** — can then show live per-VPS status **without SSH or any credentials**.
 ```bash
-# on each VPS (name = azure / lightsail / usman / ...):
+# on each VPS (name = lightsail / kand / ...):
 sudo cp cowrie-soc-monitor/soc_heartbeat.py /home/cowrie/
 ( sudo crontab -l 2>/dev/null; echo '*/10 * * * * /usr/bin/python3 /home/cowrie/soc_heartbeat.py <name>' ) | sudo crontab -
 ```
