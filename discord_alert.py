@@ -1217,7 +1217,7 @@ def _write_map_html():
 <script>
 const map = L.map('map',{center:[25,10],zoom:2,minZoom:2,maxZoom:12,zoomControl:false,worldCopyJump:true,attributionControl:false});
 L.control.zoom({position:'bottomright'}).addTo(map);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
+L.tileLayer('https://server.arcgis.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,attribution:'Esri'}).addTo(map);
 
 function tier(score){if(score>=30)return['#ff3b52',18];if(score>=10)return['#ff7a3b',15];if(score>=3)return['#ffaa28',12];return['#4682ff',9];}
 function dotIcon(score){
