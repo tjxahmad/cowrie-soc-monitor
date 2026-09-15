@@ -2,8 +2,8 @@
   "name": "kand",
   "discord_alert": "active",
   "attack_map": "active",
-  "today_attacks": 0,
-  "last_attacker": "",
-  "updated": 1789454401,
-  "updated_iso": "2026-09-15 06:40:01 UTC"
+  "today_attacks": 8,
+  "last_attacker": "195.178.110.228 \u2014 user:root pass:'000000'",
+  "updated": 1789455001,
+  "updated_iso": "2026-09-15 06:50:01 UTC"
 }
